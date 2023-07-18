@@ -1,0 +1,73 @@
+---
+image: archlinux:latest
+
+stages:
+  - test
+
+lint:
+  stage: test
+  needs: []
+  before_script:
+    - pacman -Syu --needed --noconfirm make flake8 mypy python-black python-isort
+  script:
+    - make lint
+  only:
+    changes:
+      - keyringctl
+      - libkeyringctl/*
+      - tests/*
+      - .gitlab-ci.yml
+      - Makefile
+
+test:
+  stage: test
+  needs: []
+  before_script:
+    - pacman -Syu --needed --noconfirm make python sequoia-sq python-coverage python-pytest python-tomli
+  script:
+    - make test
+  only:
+    changes:
+      - keyringctl
+      - libkeyringctl/*
+      - tests/*
+      - .gitlab-ci.yml
+      - Makefile
+  coverage: '/TOTAL.*\s([.\d]+)%/'
+  artifacts:
+    when: always
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: build/coverage.xml
+      junit: build/junit-report.xml
+
+build_install:
+  stage: test
+  needs: []
+  before_script:
+    - pacman -Syu --needed --noconfirm make pkgconf python sequoia-sq systemd
+  script:
+    - make
+    - make install PREFIX=/usr
+    - pacman-key --init
+    - pacman-key --populate archwill
+    - pacman-key --updatedb
+    - pacman -Syu
+
+keyring_check:
+  stage: test
+  needs: []
+  before_script:
+    - pacman -Syu --needed --noconfirm make python sequoia-sq git
+  script:
+    - ./keyringctl check
+    - ./keyringctl ci
+  only:
+    changes:
+      - keyring/**/*
+      - keyringctl
+      - libkeyringctl/*
+      - tests/*
+      - .gitlab-ci.yml
+      - Makefile

@@ -1,0 +1,7 @@
+/build
+*~
+archwill-keyring-*.tar.gz
+archwill-keyring-*.tar.gz.sig
+/.idea
+.coverage
+__pycache__/
